@@ -281,12 +281,18 @@ local AUTO_COLLECT_ITEM_GROUPS = {
     Other = {"Bandage", "Revolver Ammo", "Lost Child", "Item Chest", "Rifle Ammo", "Rifle"}
 }
 
-local collectToggles = {}
+local allAutoCollectItems = {}
+local groupLookup = {}
 for group, items in pairs(AUTO_COLLECT_ITEM_GROUPS) do
-    collectToggles[group] = {}
     for _, item in ipairs(items) do
-        collectToggles[group][item] = true
+        table.insert(allAutoCollectItems, item)
+        groupLookup[item] = group
     end
+end
+
+local collectToggles = {}
+for _, item in ipairs(allAutoCollectItems) do
+    collectToggles[item] = false
 end
 
 local function getSack()
@@ -309,17 +315,15 @@ local function findNearestItem()
     end
     local rootPart = character.HumanoidRootPart
     local closestItem, closestDistance = nil, math.huge
-    for group, toggles in pairs(collectToggles) do
-        for itemName, enabled in pairs(toggles) do
-            if enabled then
-                for _, item in pairs(Services.Workspace:WaitForChild("Items"):GetChildren()) do
-                    if item.Name == itemName then
-                        local primaryPart = item:GetPrimaryPartCFrame().p
-                        local distance = (rootPart.Position - primaryPart).Magnitude
-                        if distance < closestDistance and distance <= MAX_ITEM_DISTANCE then
-                            closestItem = item
-                            closestDistance = distance
-                        end
+    for itemName, enabled in pairs(collectToggles) do
+        if enabled then
+            for _, item in pairs(Services.Workspace:WaitForChild("Items"):GetChildren()) do
+                if item.Name == itemName then
+                    local primaryPart = item:GetPrimaryPartCFrame().p
+                    local distance = (rootPart.Position - primaryPart).Magnitude
+                    if distance < closestDistance and distance <= MAX_ITEM_DISTANCE then
+                        closestItem = item
+                        closestDistance = distance
                     end
                 end
             end
@@ -349,20 +353,18 @@ function stopAutoCollect()
     AUTO_COLLECT_ENABLED = false
 end
 
-for group, items in pairs(AUTO_COLLECT_ITEM_GROUPS) do
-    Tabs.Main:Dropdown({
-        Title = "Auto Collect: " .. group,
-        Values = items,
-        Value = items,
-        Multi = true,
-        AllowNone = true,
-        Callback = function(selected)
-            for _, item in ipairs(items) do
-                collectToggles[group][item] = table.find(selected, item) ~= nil
-            end
+Tabs.Main:Dropdown({
+    Title = "Auto Collect Items",
+    Values = allAutoCollectItems,
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(selected)
+        for _, item in ipairs(allAutoCollectItems) do
+            collectToggles[item] = table.find(selected, item) ~= nil
         end
-    })
-end
+    end
+})
 
 Tabs.Main:Toggle({
     Title = "Auto Collect Items",
