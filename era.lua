@@ -155,6 +155,26 @@ Tabs.Main:Toggle({
 })
 
 
+
+local function findNearestResource(validNames)
+    local character = lplr.Character
+    if not (character and character:FindFirstChild("HumanoidRootPart")) then
+        return nil
+    end
+    local rootPart = character.HumanoidRootPart
+    local closestResource, closestDistance = nil, math.huge
+    for _, resource in pairs(Services.Workspace:WaitForChild("Map"):WaitForChild("Foliage"):GetChildren()) do
+        if validNames and not validNames[resource.Name] then continue end
+        local primaryPart = resource:GetPrimaryPartCFrame().p
+        local distance = (rootPart.Position - primaryPart).Magnitude
+        if distance < closestDistance and distance <= MAX_RESOURCE_DISTANCE then
+            closestResource = resource
+            closestDistance = distance
+        end
+    end
+    return closestResource
+end
+
 Tabs.Main:Divider()
 Tabs.Main:Section({ Title = "Auto Do Stuff" })
 
