@@ -158,7 +158,6 @@ Tabs.Main:Toggle({
 Tabs.Main:Divider()
 Tabs.Main:Section({ Title = "Auto Do Stuff" })
 
-
 local ITEM_GROUPS = {
     Food = {"Carrot", "Apple", "Berry"}
 }
@@ -168,9 +167,9 @@ for _, item in ipairs(ITEM_GROUPS.Food) do
     getgenv().autoConsumeList[item] = false
 end
 
-local collectToggles = {Food = {}}
+local collectToggles_AutoConsume = {}
 for _, item in ipairs(ITEM_GROUPS.Food) do
-    collectToggles.Food[item] = false
+    collectToggles_AutoConsume[item] = false
 end
 
 local Services = setmetatable({}, {
@@ -196,12 +195,12 @@ local function setAutoConsume(state)
     AUTO_CONSUME_ENABLED = state
 end
 
-local function setCollectToggles(selectedFoods)
-    for food, _ in pairs(collectToggles.Food) do
-        collectToggles.Food[food] = false
+local function setCollectToggles_AutoConsume(selectedFoods)
+    for food, _ in pairs(collectToggles_AutoConsume) do
+        collectToggles_AutoConsume[food] = false
     end
     for _, food in ipairs(selectedFoods) do
-        collectToggles.Food[food] = true
+        collectToggles_AutoConsume[food] = true
     end
 end
 
@@ -261,7 +260,7 @@ Tabs.Main:Dropdown({
         for _, food in ipairs(selected) do
             getgenv().autoConsumeList[food] = true
         end
-        setCollectToggles(selected)
+        setCollectToggles_AutoConsume(selected)
     end
 })
 
@@ -273,7 +272,7 @@ Tabs.Main:Toggle({
     end
 })
 
-
+-- ----- AUTO COLLECT PART -----
 local AUTO_COLLECT_ITEM_GROUPS = {
     Food = {"Carrot", "Apple", "Berry"},
     Fuel = {"Fuel Canister", "Coal", "Sapling", "Log"},
@@ -290,9 +289,9 @@ for group, items in pairs(AUTO_COLLECT_ITEM_GROUPS) do
     end
 end
 
-local collectToggles = {}
+local collectToggles_AutoCollect = {}
 for _, item in ipairs(allAutoCollectItems) do
-    collectToggles[item] = false
+    collectToggles_AutoCollect[item] = false
 end
 
 local function getSack()
@@ -315,7 +314,7 @@ local function findNearestItem()
     end
     local rootPart = character.HumanoidRootPart
     local closestItem, closestDistance = nil, math.huge
-    for itemName, enabled in pairs(collectToggles) do
+    for itemName, enabled in pairs(collectToggles_AutoCollect) do
         if enabled then
             for _, item in pairs(Services.Workspace:WaitForChild("Items"):GetChildren()) do
                 if item.Name == itemName then
@@ -361,7 +360,7 @@ Tabs.Main:Dropdown({
     AllowNone = true,
     Callback = function(selected)
         for _, item in ipairs(allAutoCollectItems) do
-            collectToggles[item] = table.find(selected, item) ~= nil
+            collectToggles_AutoCollect[item] = table.find(selected, item) ~= nil
         end
     end
 })
