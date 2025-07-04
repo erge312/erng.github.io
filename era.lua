@@ -155,28 +155,9 @@ Tabs.Main:Toggle({
 })
 
 
-
-local function findNearestResource(validNames)
-    local character = lplr.Character
-    if not (character and character:FindFirstChild("HumanoidRootPart")) then
-        return nil
-    end
-    local rootPart = character.HumanoidRootPart
-    local closestResource, closestDistance = nil, math.huge
-    for _, resource in pairs(Services.Workspace:WaitForChild("Map"):WaitForChild("Foliage"):GetChildren()) do
-        if validNames and not validNames[resource.Name] then continue end
-        local primaryPart = resource:GetPrimaryPartCFrame().p
-        local distance = (rootPart.Position - primaryPart).Magnitude
-        if distance < closestDistance and distance <= MAX_RESOURCE_DISTANCE then
-            closestResource = resource
-            closestDistance = distance
-        end
-    end
-    return closestResource
-end
-
 Tabs.Main:Divider()
 Tabs.Main:Section({ Title = "Auto Do Stuff" })
+
 
 local ITEM_GROUPS = {
     Food = {"Carrot", "Apple", "Berry"}
@@ -187,9 +168,9 @@ for _, item in ipairs(ITEM_GROUPS.Food) do
     getgenv().autoConsumeList[item] = false
 end
 
-local collectToggles_AutoConsume = {}
+local collectToggles = {Food = {}}
 for _, item in ipairs(ITEM_GROUPS.Food) do
-    collectToggles_AutoConsume[item] = false
+    collectToggles.Food[item] = false
 end
 
 local Services = setmetatable({}, {
@@ -215,12 +196,12 @@ local function setAutoConsume(state)
     AUTO_CONSUME_ENABLED = state
 end
 
-local function setCollectToggles_AutoConsume(selectedFoods)
-    for food, _ in pairs(collectToggles_AutoConsume) do
-        collectToggles_AutoConsume[food] = false
+local function setCollectToggles(selectedFoods)
+    for food, _ in pairs(collectToggles.Food) do
+        collectToggles.Food[food] = false
     end
     for _, food in ipairs(selectedFoods) do
-        collectToggles_AutoConsume[food] = true
+        collectToggles.Food[food] = true
     end
 end
 
@@ -280,7 +261,7 @@ Tabs.Main:Dropdown({
         for _, food in ipairs(selected) do
             getgenv().autoConsumeList[food] = true
         end
-        setCollectToggles_AutoConsume(selected)
+        setCollectToggles(selected)
     end
 })
 
@@ -292,7 +273,7 @@ Tabs.Main:Toggle({
     end
 })
 
--- ----- AUTO COLLECT PART -----
+
 local AUTO_COLLECT_ITEM_GROUPS = {
     Food = {"Carrot", "Apple", "Berry"},
     Fuel = {"Fuel Canister", "Coal", "Sapling", "Log"},
@@ -309,9 +290,9 @@ for group, items in pairs(AUTO_COLLECT_ITEM_GROUPS) do
     end
 end
 
-local collectToggles_AutoCollect = {}
+local collectToggles = {}
 for _, item in ipairs(allAutoCollectItems) do
-    collectToggles_AutoCollect[item] = false
+    collectToggles[item] = false
 end
 
 local function getSack()
@@ -334,7 +315,7 @@ local function findNearestItem()
     end
     local rootPart = character.HumanoidRootPart
     local closestItem, closestDistance = nil, math.huge
-    for itemName, enabled in pairs(collectToggles_AutoCollect) do
+    for itemName, enabled in pairs(collectToggles) do
         if enabled then
             for _, item in pairs(Services.Workspace:WaitForChild("Items"):GetChildren()) do
                 if item.Name == itemName then
@@ -380,7 +361,7 @@ Tabs.Main:Dropdown({
     AllowNone = true,
     Callback = function(selected)
         for _, item in ipairs(allAutoCollectItems) do
-            collectToggles_AutoCollect[item] = table.find(selected, item) ~= nil
+            collectToggles[item] = table.find(selected, item) ~= nil
         end
     end
 })
@@ -397,47 +378,7 @@ Tabs.Main:Toggle({
     end
 })
 
--- ----- AUTO CHOP TREES PART -----
-local AUTO_CHOP_ENABLED = false
-local CHOP_COOLDOWN = 0.5
-local lastChop = 0
-local TARGET_RESOURCES = {["Small Tree"]=true, ["Coal Deposit"]=true, ["Fuel Deposit"]=true}
 
-local autoChopThread = nil
-function startAutoChop()
-    if AUTO_CHOP_ENABLED then return end
-    AUTO_CHOP_ENABLED = true
-    autoChopThread = task.spawn(function()
-        while AUTO_CHOP_ENABLED do
-            if os.clock() >= lastChop + CHOP_COOLDOWN then
-                lastChop = os.clock()
-                local resource = findNearestResource(TARGET_RESOURCES)
-                if resource then
-                    local tool = getAxe()
-                    if tool then
-                        local sessionID = math.random(10000,99999) .. "_" .. tostring(lplr.UserId)
-                        local cframe = lplr.Character and lplr.Character.HumanoidRootPart and lplr.Character.HumanoidRootPart.CFrame
-                        local args = {resource, tool, sessionID, cframe}
-                        Services.ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("ToolDamageObject"):InvokeServer(unpack(args))
-                    end
-                end
-            end
-            task.wait(CHOP_COOLDOWN)
-        end
-    end)
-end
-
-function stopAutoChop()
-    AUTO_CHOP_ENABLED = false
-end
-
-Tabs.Main:Toggle({
-    Title = "Auto Chop Trees",
-    Default = false,
-    Callback = function(state)
-        if state then startAutoChop() else stopAutoChop() end
-    end
-})
 
 
 
