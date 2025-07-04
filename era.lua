@@ -274,6 +274,108 @@ Tabs.Main:Toggle({
 })
 
 
+local AUTO_COLLECT_ITEM_GROUPS = {
+    Food = {"Carrot", "Apple", "Berry"},
+    Fuel = {"Fuel Canister", "Coal", "Sapling", "Log"},
+    Scrappable = {"Alpha Wolf Corpse", "Wolf Corpse"},
+    Other = {"Bandage", "Revolver Ammo", "Lost Child", "Item Chest", "Rifle Ammo", "Rifle"}
+}
+
+local collectToggles = {}
+for group, items in pairs(AUTO_COLLECT_ITEM_GROUPS) do
+    collectToggles[group] = {}
+    for _, item in ipairs(items) do
+        collectToggles[group][item] = true
+    end
+end
+
+local function getSack()
+    local inv = lplr:FindFirstChild("Inventory")
+    if not inv then return nil end
+    return inv:FindFirstChild("Old Sack") or inv:FindFirstChild("Good Sack") or inv:FindFirstChild("Giant Sack")
+end
+
+local function storeItem(item)
+    local sack = getSack()
+    if not sack then return end
+    local args = {sack, item}
+    Services.ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("RequestBagStoreItem"):InvokeServer(unpack(args))
+end
+
+local function findNearestItem()
+    local character = lplr.Character
+    if not (character and character:FindFirstChild("HumanoidRootPart")) then
+        return nil
+    end
+    local rootPart = character.HumanoidRootPart
+    local closestItem, closestDistance = nil, math.huge
+    for group, toggles in pairs(collectToggles) do
+        for itemName, enabled in pairs(toggles) do
+            if enabled then
+                for _, item in pairs(Services.Workspace:WaitForChild("Items"):GetChildren()) do
+                    if item.Name == itemName then
+                        local primaryPart = item:GetPrimaryPartCFrame().p
+                        local distance = (rootPart.Position - primaryPart).Magnitude
+                        if distance < closestDistance and distance <= MAX_ITEM_DISTANCE then
+                            closestItem = item
+                            closestDistance = distance
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return closestItem
+end
+
+local AUTO_COLLECT_ENABLED = false
+local autoCollectThread = nil
+
+function startAutoCollect()
+    if AUTO_COLLECT_ENABLED then return end
+    AUTO_COLLECT_ENABLED = true
+    autoCollectThread = task.spawn(function()
+        while AUTO_COLLECT_ENABLED do
+            local item = findNearestItem()
+            if item then
+                storeItem(item)
+            end
+            task.wait(0.3)
+        end
+    end)
+end
+
+function stopAutoCollect()
+    AUTO_COLLECT_ENABLED = false
+end
+
+for group, items in pairs(AUTO_COLLECT_ITEM_GROUPS) do
+    Tabs.Main:Dropdown({
+        Title = "Auto Collect: " .. group,
+        Values = items,
+        Value = items,
+        Multi = true,
+        AllowNone = true,
+        Callback = function(selected)
+            for _, item in ipairs(items) do
+                collectToggles[group][item] = table.find(selected, item) ~= nil
+            end
+        end
+    })
+end
+
+Tabs.Main:Toggle({
+    Title = "Auto Collect Items",
+    Default = false,
+    Callback = function(state)
+        if state then
+            startAutoCollect()
+        else
+            stopAutoCollect()
+        end
+    end
+})
+
 
 
 
