@@ -20,18 +20,7 @@ local rocketPosition = nil
 local printedTeleportMessage = false
 local printedChairMessage = false
 
--- Notification loop
-spawn(function()
-    while true do
-        StarterGui:SetCore("SendNotification", {
-            Title = "RINGTA MADE THIS!",
-            Text = "discord.gg/ringta",
-            Icon = "rbxassetid://99581962287910",
-            Duration = 5
-        })
-        task.wait(20)
-    end
-end)
+
 
 -- Tween to find BottleRocketLauncher
 for z = startZ, endZ, stepZ do
